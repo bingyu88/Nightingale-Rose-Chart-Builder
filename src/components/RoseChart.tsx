@@ -178,7 +178,7 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
                   className="hover:opacity-100 transition-opacity cursor-pointer"
                   onClick={(e) => openEditor(e, item.id)}
                 >
-                  <title>{`${item.name}: ${item.value} (${item.angle}°, 半径${item.radius})`}</title>
+                  <title>{`${item.name}: ${item.value.toFixed(2)} (${item.angle.toFixed(2)}°, 半径${item.radius.toFixed(2)})`}</title>
                 </path>
                 
                 {/* Label */}
@@ -192,7 +192,7 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
                   onMouseDown={(e) => handleLabelMouseDown(e, item)}
                   onClick={(e) => openEditor(e, item.id)}
                 >
-                  {showValueInLabel ? `${item.name} ${item.value}` : item.name}
+                  {showValueInLabel ? `${item.name} ${item.value.toFixed(2)}` : item.name}
                 </text>
               </g>
             );
@@ -278,7 +278,7 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
               className="w-4 h-4 rounded"
               style={{ backgroundColor: item.color }}
             />
-            <span style={{ fontSize: `${DEFAULT_FONT_SIZE}px`, fontFamily: DEFAULT_FONT_FAMILY, fontWeight: boldText ? 'bold' : 'normal', color: item.labelColor ?? labelTextColor }}>{item.name}: {Number(item.value.toFixed(2))} ({Number(item.angle.toFixed(2))}°, R{Number((item.radius + 10).toFixed(2))})</span>
+            <span style={{ fontSize: `${DEFAULT_FONT_SIZE}px`, fontFamily: DEFAULT_FONT_FAMILY, fontWeight: boldText ? 'bold' : 'normal', color: item.labelColor ?? labelTextColor }}>{item.name}: {item.value.toFixed(2)} ({item.angle.toFixed(2)}°, R{(item.radius + 10).toFixed(2)})</span>
           </div>
         ))}
       </div>
