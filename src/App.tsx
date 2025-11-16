@@ -193,8 +193,8 @@ export default function App() {
           <p className="text-slate-600">输入数据并自定义颜色，实时预览玫瑰图效果</p>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2">
+        <div className="flex gap-4">
+          <Card className="basis-[60%] min-w-0">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>玫瑰图预览</CardTitle>
               <div className="flex gap-2">
@@ -207,7 +207,7 @@ export default function App() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="basis-[40%] min-w-0">
             <CardHeader>
               <CardTitle>数据设置</CardTitle>
             </CardHeader>

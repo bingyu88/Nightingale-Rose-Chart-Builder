@@ -1,8 +1,5 @@
 import { useState } from 'react';
 import { DataItem } from '../App';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Button } from './ui/button';
 
 interface RoseChartProps {
   data: DataItem[];
@@ -101,69 +98,7 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
     };
   });
 
-  // Handle label drag events
-  const handleLabelMouseDown = (e: React.MouseEvent, item: DataItem) => {
-    if (!onLabelDrag) return;
-    
-    e.preventDefault();
-    const svg = e.currentTarget.closest('svg');
-    if (!svg) return;
-    
-    const startX = e.clientX;
-    const startY = e.clientY;
-    
-    // Get current label position
-    const effectiveRadius = item.radius + 8;
-    const labelPos = getLabelPosition(slicesData.find(d => d.item.id === item.id)?.startAngle || 0, item.angle, effectiveRadius);
-    const currentOffsetX = item.labelX || 0;
-    const currentOffsetY = item.labelY || 0;
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      const deltaX = e.clientX - startX;
-      const deltaY = e.clientY - startY;
-      const newX = Math.round(currentOffsetX + deltaX);
-      const newY = Math.round(currentOffsetY + deltaY);
-      onLabelDrag(item.id, newX, newY);
-    };
-    
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-    
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
-  const [editPanel, setEditPanel] = useState<{ id: string; x: number; y: number } | null>(null);
-
-  const openEditor = (e: React.MouseEvent, id: string) => {
-    const container = (e.currentTarget as HTMLElement).closest('.rose-container');
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    setEditPanel({ id, x, y });
-  };
-
-  const closeEditor = () => setEditPanel(null);
-  const [labelEdit, setLabelEdit] = useState<{ id: string; x: number; y: number; value: string } | null>(null);
-  const openLabelEditor = (e: React.MouseEvent, item: DataItem, x: number, y: number) => {
-    const container = (e.currentTarget as HTMLElement).closest('.rose-container');
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    setLabelEdit({ id: item.id, x: Math.round(x - rect.left), y: Math.round(y - rect.top), value: item.name });
-  };
-  const closeLabelEditor = () => setLabelEdit(null);
-  const [hoverToolbar, setHoverToolbar] = useState<{ id: string; x: number; y: number } | null>(null);
-  const showToolbar = (e: React.MouseEvent, id: string, x: number, y: number) => {
-    const container = (e.currentTarget as HTMLElement).closest('.rose-container');
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    setHoverToolbar({ id, x: Math.round(x - rect.left), y: Math.round(y - rect.top) });
-  };
-  const hideToolbar = () => setHoverToolbar(null);
-  const [activeHandlesId, setActiveHandlesId] = useState<string | null>(null);
+  
 
   return (
     <div className="w-full relative rose-container">
@@ -192,7 +127,7 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
             const angleHandleY = centerY + outerRadius * Math.sin(endAngle);
             
             return (
-              <g key={item.id} onMouseEnter={() => setActiveHandlesId(item.id)} onMouseLeave={() => setActiveHandlesId(null)}>
+              <g key={item.id}>
                 {/* Slice */}
                 <path
                   d={path}
@@ -200,8 +135,7 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
                   stroke={gapEnabled ? "white" : "none"}
                   strokeWidth={gapEnabled ? 2 : 0}
                   opacity="0.9"
-                  className="hover:opacity-100 transition-opacity cursor-pointer"
-                  onClick={(e) => openEditor(e, item.id)}
+                  className="hover:opacity-100 transition-opacity"
                 >
                   <title>{`${item.name}: ${item.value.toFixed(2)} (${item.angle.toFixed(2)}°, 半径${item.radius.toFixed(2)})`}</title>
                 </path>
@@ -212,87 +146,11 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
                   y={ly}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className="cursor-move select-none"
+                  className="select-none"
                   style={{ fontSize: `${item.fontSize ?? DEFAULT_FONT_SIZE}px`, fontFamily: DEFAULT_FONT_FAMILY, fontWeight: boldText ? 'bold' : 'normal', fill: item.labelColor ?? labelTextColor, textRendering: 'geometricPrecision' }}
-                  onMouseDown={(e) => handleLabelMouseDown(e, item)}
-                  onClick={(e) => openEditor(e, item.id)}
-                  onDoubleClick={(e) => openLabelEditor(e, item, lx, ly)}
-                  onMouseEnter={(e) => showToolbar(e, item.id, lx, ly)}
-                  onWheel={(e) => {
-                    e.preventDefault();
-                    const cur = item.fontSize ?? DEFAULT_FONT_SIZE;
-                    const next = Math.min(64, Math.max(8, cur + (e.deltaY < 0 ? 1 : -1)));
-                    onUpdateItem?.(item.id, { fontSize: next });
-                  }}
                 >
                   {showValueInLabel ? `${item.name} ${item.value.toFixed(2)}` : item.name}
                 </text>
-
-                {activeHandlesId === item.id && (
-                <circle
-                  cx={radiusHandleX}
-                  cy={radiusHandleY}
-                  r={6}
-                  fill="#ffffff"
-                  stroke={item.color}
-                  strokeWidth={2}
-                  className="cursor-ns-resize"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    const svg = e.currentTarget.closest('svg');
-                    if (!svg) return;
-                    const handleMove = (me: MouseEvent) => {
-                      const rect = svg.getBoundingClientRect();
-                      const px = me.clientX - rect.left;
-                      const py = me.clientY - rect.top;
-                      const dx = px - centerX;
-                      const dy = py - centerY;
-                      const dist = Math.sqrt(dx * dx + dy * dy);
-                      const desiredOuter = Math.max(baseInnerRadius + 1, Math.min(dist, maxRadius));
-                      const desiredRadius = ((desiredOuter - baseInnerRadius) / (maxRadius - baseInnerRadius)) * maxRadiusValue;
-                      onUpdateItem?.(item.id, { radius: Number(desiredRadius.toFixed(2)) });
-                    };
-                    const handleUp = () => {
-                      document.removeEventListener('mousemove', handleMove);
-                      document.removeEventListener('mouseup', handleUp);
-                    };
-                    document.addEventListener('mousemove', handleMove);
-                    document.addEventListener('mouseup', handleUp);
-                  }}
-                />)}
-
-                {activeHandlesId === item.id && (
-                <circle
-                  cx={angleHandleX}
-                  cy={angleHandleY}
-                  r={6}
-                  fill="#ffffff"
-                  stroke={item.color}
-                  strokeWidth={2}
-                  className="cursor-ew-resize"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    const svg = e.currentTarget.closest('svg');
-                    if (!svg) return;
-                    const handleMove = (me: MouseEvent) => {
-                      const rect = svg.getBoundingClientRect();
-                      const px = me.clientX - rect.left;
-                      const py = me.clientY - rect.top;
-                      const ang = Math.atan2(py - centerY, px - centerX) * (180 / Math.PI) + 90;
-                      let newAngle = ang - startAngle;
-                      while (newAngle < 0) newAngle += 360;
-                      while (newAngle > 360) newAngle -= 360;
-                      newAngle = Math.max(1, Math.min(newAngle, 360));
-                      onUpdateItem?.(item.id, { angle: Number(newAngle.toFixed(2)) });
-                    };
-                    const handleUp = () => {
-                      document.removeEventListener('mousemove', handleMove);
-                      document.removeEventListener('mouseup', handleUp);
-                    };
-                    document.addEventListener('mousemove', handleMove);
-                    document.addEventListener('mouseup', handleUp);
-                  }}
-                />)}
               </g>
             );
           })}
@@ -321,85 +179,7 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
         </svg>
       </div>
 
-      {editPanel && (
-        <div style={{ left: editPanel.x, top: editPanel.y }} className="absolute z-10 bg-white border rounded-md shadow-md p-2 w-80">
-          {(() => {
-            const item = data.find(d => d.id === editPanel.id);
-            if (!item) return null;
-            return (
-              <div className="space-y-2">
-                <div className="grid grid-cols-4 gap-2">
-                  <div>
-                    <Label>名称</Label>
-                    <Input value={item.name} onChange={(e) => onUpdateItem?.(item.id, { name: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>数值</Label>
-                    <Input type="number" value={item.value} onChange={(e) => onUpdateItem?.(item.id, { value: parseFloat(e.target.value) })} step="0.01" />
-                  </div>
-                  <div>
-                    <Label>角度</Label>
-                    <Input type="number" value={item.angle} onChange={(e) => onUpdateItem?.(item.id, { angle: parseFloat(e.target.value) })} step="0.01" />
-                  </div>
-                  <div>
-                    <Label>半径</Label>
-                    <Input type="number" value={item.radius} onChange={(e) => onUpdateItem?.(item.id, { radius: parseFloat(e.target.value) })} step="0.01" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-2 items-end">
-                  <div>
-                    <Label>字号</Label>
-                    <Input type="number" value={item.fontSize ?? 12} onChange={(e) => onUpdateItem?.(item.id, { fontSize: Number(e.target.value) })} />
-                  </div>
-                  <div>
-                    <Label>标签色</Label>
-                    <Input type="color" value={item.labelColor ?? labelTextColor} onChange={(e) => onUpdateItem?.(item.id, { labelColor: e.target.value })} className="h-10 p-0" />
-                  </div>
-                  <div>
-                    <Label>色块色</Label>
-                    <Input type="color" value={item.color} onChange={(e) => onUpdateItem?.(item.id, { color: e.target.value })} className="h-10 p-0" />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={closeEditor}>关闭</Button>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-      )}
-
-      {hoverToolbar && (() => {
-        const item = data.find(d => d.id === hoverToolbar.id);
-        if (!item) return null;
-        return (
-          <div style={{ left: hoverToolbar.x + 10, top: hoverToolbar.y - 10 }} className="absolute z-10 bg-white border rounded shadow px-2 py-1 flex items-center gap-2" onMouseLeave={hideToolbar}>
-            <Input type="number" value={item.value} step="0.01" onChange={(e) => onUpdateItem?.(item.id, { value: parseFloat(e.target.value) })} className="w-20 h-7" />
-            <Input type="color" value={item.labelColor ?? labelTextColor} onChange={(e) => onUpdateItem?.(item.id, { labelColor: e.target.value })} className="w-8 h-7 p-0" />
-            <Input type="color" value={item.color} onChange={(e) => onUpdateItem?.(item.id, { color: e.target.value })} className="w-8 h-7 p-0" />
-          </div>
-        );
-      })()}
-
-      {labelEdit && (
-        <div style={{ left: labelEdit.x, top: labelEdit.y }} className="absolute z-20 bg-white border rounded-md shadow px-2 py-1">
-          <Input
-            value={labelEdit.value}
-            onChange={(e) => setLabelEdit({ ...labelEdit, value: e.target.value })}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                onUpdateItem?.(labelEdit.id, { name: labelEdit.value });
-                closeLabelEditor();
-              } else if (e.key === 'Escape') {
-                closeLabelEditor();
-              }
-            }}
-            onBlur={() => { onUpdateItem?.(labelEdit.id, { name: labelEdit.value }); closeLabelEditor(); }}
-            className="h-8"
-            autoFocus
-          />
-        </div>
-      )}
+      
       
       {/* Legend */}
       <div className="flex flex-wrap gap-3 justify-center mt-6">
