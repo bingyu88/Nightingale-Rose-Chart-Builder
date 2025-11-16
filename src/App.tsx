@@ -14,6 +14,7 @@ export interface DataItem {
   fontSize?: number;
   labelX?: number; // 标签X坐标偏移
   labelY?: number; // 标签Y坐标偏移
+  labelColor?: string; // 标签文字颜色
 }
 
 export default function App() {
@@ -43,6 +44,47 @@ export default function App() {
   const [boldText, setBoldText] = useState(true);
   const [centerCircleStrokeWidth, setCenterCircleStrokeWidth] = useState(1);
   const [centerCircleStrokeColor, setCenterCircleStrokeColor] = useState('#3b82f6');
+  const [labelTextColor, setLabelTextColor] = useState('#334155');
+  const [centerTextColor, setCenterTextColor] = useState('#334155');
+
+  const exportConfig = () => {
+    const config = {
+      data,
+      showValueInLabel,
+      innerRadius,
+      gapEnabled,
+      centerText,
+      boldText,
+      centerCircleStrokeWidth,
+      centerCircleStrokeColor,
+      labelTextColor,
+      centerTextColor,
+    };
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'rose-config.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importConfig = async (file: File) => {
+    const text = await file.text();
+    try {
+      const cfg = JSON.parse(text);
+      if (Array.isArray(cfg.data)) setData(cfg.data);
+      if (typeof cfg.showValueInLabel === 'boolean') setShowValueInLabel(cfg.showValueInLabel);
+      if (typeof cfg.innerRadius === 'number') setInnerRadius(cfg.innerRadius);
+      if (typeof cfg.gapEnabled === 'boolean') setGapEnabled(cfg.gapEnabled);
+      if (typeof cfg.centerText === 'string') setCenterText(cfg.centerText);
+      if (typeof cfg.boldText === 'boolean') setBoldText(cfg.boldText);
+      if (typeof cfg.centerCircleStrokeWidth === 'number') setCenterCircleStrokeWidth(cfg.centerCircleStrokeWidth);
+      if (typeof cfg.centerCircleStrokeColor === 'string') setCenterCircleStrokeColor(cfg.centerCircleStrokeColor);
+      if (typeof cfg.labelTextColor === 'string') setLabelTextColor(cfg.labelTextColor);
+      if (typeof cfg.centerTextColor === 'string') setCenterTextColor(cfg.centerTextColor);
+    } catch (e) {}
+  };
 
   // Sort data by value in descending order for display
   const sortedData = [...data].sort((a, b) => b.value - a.value);
@@ -151,8 +193,8 @@ export default function App() {
           <p className="text-slate-600">输入数据并自定义颜色，实时预览玫瑰图效果</p>
         </header>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          <Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>玫瑰图预览</CardTitle>
               <div className="flex gap-2">
@@ -161,7 +203,7 @@ export default function App() {
               </div>
             </CardHeader>
             <CardContent>
-              <RoseChart data={sortedData} showValueInLabel={showValueInLabel} innerRadius={innerRadius} gapEnabled={gapEnabled} centerText={centerText} boldText={boldText} onLabelDrag={handleLabelDrag} centerCircleStrokeWidth={centerCircleStrokeWidth} centerCircleStrokeColor={centerCircleStrokeColor} />
+              <RoseChart data={sortedData} showValueInLabel={showValueInLabel} innerRadius={innerRadius} gapEnabled={gapEnabled} centerText={centerText} boldText={boldText} onLabelDrag={handleLabelDrag} centerCircleStrokeWidth={centerCircleStrokeWidth} centerCircleStrokeColor={centerCircleStrokeColor} labelTextColor={labelTextColor} centerTextColor={centerTextColor} onUpdateItem={handleUpdateItem} />
             </CardContent>
           </Card>
 
@@ -191,6 +233,12 @@ export default function App() {
                 onCenterCircleStrokeWidthChange={setCenterCircleStrokeWidth}
                 centerCircleStrokeColor={centerCircleStrokeColor}
                 onCenterCircleStrokeColorChange={setCenterCircleStrokeColor}
+                labelTextColor={labelTextColor}
+                onLabelTextColorChange={setLabelTextColor}
+                centerTextColor={centerTextColor}
+                onCenterTextColorChange={setCenterTextColor}
+                onExportConfig={exportConfig}
+                onImportConfig={importConfig}
               />
             </CardContent>
           </Card>

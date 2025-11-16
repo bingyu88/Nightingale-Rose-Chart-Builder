@@ -1,4 +1,8 @@
+import { useState } from 'react';
 import { DataItem } from '../App';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Button } from './ui/button';
 
 interface RoseChartProps {
   data: DataItem[];
@@ -10,12 +14,15 @@ interface RoseChartProps {
   onLabelDrag?: (id: string, x: number, y: number) => void;
   centerCircleStrokeWidth?: number;
   centerCircleStrokeColor?: string;
+  labelTextColor?: string;
+  centerTextColor?: string;
+  onUpdateItem?: (id: string, updates: Partial<DataItem>) => void;
 }
 
 const DEFAULT_FONT_SIZE = 12;
 const DEFAULT_FONT_FAMILY = '仿宋_GB2312, FangSong, STFangSong, serif';
 
-export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gapEnabled = false, centerText = '', boldText = true, onLabelDrag, centerCircleStrokeWidth = 1, centerCircleStrokeColor = '#3b82f6' }: RoseChartProps) {
+export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gapEnabled = false, centerText = '', boldText = true, onLabelDrag, centerCircleStrokeWidth = 1, centerCircleStrokeColor = '#3b82f6', labelTextColor = '#334155', centerTextColor = '#334155', onUpdateItem }: RoseChartProps) {
   if (data.length === 0) {
     return (
       <div className="h-96 flex items-center justify-center text-slate-500">
@@ -102,7 +109,6 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
     const svg = e.currentTarget.closest('svg');
     if (!svg) return;
     
-    const svgRect = svg.getBoundingClientRect();
     const startX = e.clientX;
     const startY = e.clientY;
     
@@ -115,9 +121,8 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
     const handleMouseMove = (e: MouseEvent) => {
       const deltaX = e.clientX - startX;
       const deltaY = e.clientY - startY;
-      const newX = currentOffsetX + deltaX;
-      const newY = currentOffsetY + deltaY;
-      
+      const newX = Math.round(currentOffsetX + deltaX);
+      const newY = Math.round(currentOffsetY + deltaY);
       onLabelDrag(item.id, newX, newY);
     };
     
@@ -130,8 +135,21 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
     document.addEventListener('mouseup', handleMouseUp);
   };
 
+  const [editPanel, setEditPanel] = useState<{ id: string; x: number; y: number } | null>(null);
+
+  const openEditor = (e: React.MouseEvent, id: string) => {
+    const container = (e.currentTarget as HTMLElement).closest('.rose-container');
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setEditPanel({ id, x, y });
+  };
+
+  const closeEditor = () => setEditPanel(null);
+
   return (
-    <div className="w-full">
+    <div className="w-full relative rose-container">
       {angleWarning && (
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-center">
           ⚠️ 角度总和为 {totalAngle.toFixed(1)}°，建议调整为 360°
@@ -145,6 +163,8 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
             const effectiveRadius = item.radius + 8;
             const path = createSlicePath(startAngle, item.angle, effectiveRadius);
             const labelPos = getLabelPosition(startAngle, item.angle, effectiveRadius);
+            const lx = Math.round(labelPos.x + (item.labelX || 0));
+            const ly = Math.round(labelPos.y + (item.labelY || 0));
             
             return (
               <g key={item.id}>
@@ -156,19 +176,21 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
                   strokeWidth={gapEnabled ? 2 : 0}
                   opacity="0.9"
                   className="hover:opacity-100 transition-opacity cursor-pointer"
+                  onClick={(e) => openEditor(e, item.id)}
                 >
                   <title>{`${item.name}: ${item.value} (${item.angle}°, 半径${item.radius})`}</title>
                 </path>
                 
                 {/* Label */}
                 <text
-                  x={labelPos.x + (item.labelX || 0)}
-                  y={labelPos.y + (item.labelY || 0)}
+                  x={lx}
+                  y={ly}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className="fill-slate-700 cursor-move select-none"
-                  style={{ fontSize: `${item.fontSize ?? DEFAULT_FONT_SIZE}px`, fontFamily: DEFAULT_FONT_FAMILY, fontWeight: boldText ? 'bold' : 'normal' }}
+                  className="cursor-move select-none"
+                  style={{ fontSize: `${item.fontSize ?? DEFAULT_FONT_SIZE}px`, fontFamily: DEFAULT_FONT_FAMILY, fontWeight: boldText ? 'bold' : 'normal', fill: item.labelColor ?? labelTextColor, textRendering: 'geometricPrecision' }}
                   onMouseDown={(e) => handleLabelMouseDown(e, item)}
+                  onClick={(e) => openEditor(e, item.id)}
                 >
                   {showValueInLabel ? `${item.name} ${item.value}` : item.name}
                 </text>
@@ -191,14 +213,62 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
               y={centerY}
               textAnchor="middle"
               dominantBaseline="middle"
-              className="fill-slate-700 pointer-events-none"
-              style={{ fontSize: '14px', fontFamily: DEFAULT_FONT_FAMILY, fontWeight: boldText ? 'bold' : 'normal' }}
+              className="pointer-events-none"
+              style={{ fontSize: '14px', fontFamily: DEFAULT_FONT_FAMILY, fontWeight: boldText ? 'bold' : 'normal', fill: centerTextColor, textRendering: 'geometricPrecision' }}
             >
               {centerText}
             </text>
           )}
         </svg>
       </div>
+
+      {editPanel && (
+        <div style={{ left: editPanel.x, top: editPanel.y }} className="absolute z-10 bg-white border rounded-md shadow-md p-2 w-80">
+          {(() => {
+            const item = data.find(d => d.id === editPanel.id);
+            if (!item) return null;
+            return (
+              <div className="space-y-2">
+                <div className="grid grid-cols-4 gap-2">
+                  <div>
+                    <Label>名称</Label>
+                    <Input value={item.name} onChange={(e) => onUpdateItem?.(item.id, { name: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>数值</Label>
+                    <Input type="number" value={item.value} onChange={(e) => onUpdateItem?.(item.id, { value: parseFloat(e.target.value) })} step="0.01" />
+                  </div>
+                  <div>
+                    <Label>角度</Label>
+                    <Input type="number" value={item.angle} onChange={(e) => onUpdateItem?.(item.id, { angle: parseFloat(e.target.value) })} step="0.01" />
+                  </div>
+                  <div>
+                    <Label>半径</Label>
+                    <Input type="number" value={item.radius} onChange={(e) => onUpdateItem?.(item.id, { radius: parseFloat(e.target.value) })} step="0.01" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 items-end">
+                  <div>
+                    <Label>字号</Label>
+                    <Input type="number" value={item.fontSize ?? 12} onChange={(e) => onUpdateItem?.(item.id, { fontSize: Number(e.target.value) })} />
+                  </div>
+                  <div>
+                    <Label>标签色</Label>
+                    <Input type="color" value={item.labelColor ?? labelTextColor} onChange={(e) => onUpdateItem?.(item.id, { labelColor: e.target.value })} className="h-10 p-0" />
+                  </div>
+                  <div>
+                    <Label>色块色</Label>
+                    <Input type="color" value={item.color} onChange={(e) => onUpdateItem?.(item.id, { color: e.target.value })} className="h-10 p-0" />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={closeEditor}>关闭</Button>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
       
       {/* Legend */}
       <div className="flex flex-wrap gap-3 justify-center mt-6">
@@ -208,7 +278,7 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
               className="w-4 h-4 rounded"
               style={{ backgroundColor: item.color }}
             />
-            <span className="text-slate-700" style={{ fontSize: `${DEFAULT_FONT_SIZE}px`, fontFamily: DEFAULT_FONT_FAMILY, fontWeight: boldText ? 'bold' : 'normal' }}>{item.name}: {item.value} ({item.angle}°, R{item.radius + 10})</span>
+            <span style={{ fontSize: `${DEFAULT_FONT_SIZE}px`, fontFamily: DEFAULT_FONT_FAMILY, fontWeight: boldText ? 'bold' : 'normal', color: item.labelColor ?? labelTextColor }}>{item.name}: {Number(item.value.toFixed(2))} ({Number(item.angle.toFixed(2))}°, R{Number((item.radius + 10).toFixed(2))})</span>
           </div>
         ))}
       </div>
