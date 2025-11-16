@@ -147,6 +147,23 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
   };
 
   const closeEditor = () => setEditPanel(null);
+  const [labelEdit, setLabelEdit] = useState<{ id: string; x: number; y: number; value: string } | null>(null);
+  const openLabelEditor = (e: React.MouseEvent, item: DataItem, x: number, y: number) => {
+    const container = (e.currentTarget as HTMLElement).closest('.rose-container');
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    setLabelEdit({ id: item.id, x: Math.round(x - rect.left), y: Math.round(y - rect.top), value: item.name });
+  };
+  const closeLabelEditor = () => setLabelEdit(null);
+  const [hoverToolbar, setHoverToolbar] = useState<{ id: string; x: number; y: number } | null>(null);
+  const showToolbar = (e: React.MouseEvent, id: string, x: number, y: number) => {
+    const container = (e.currentTarget as HTMLElement).closest('.rose-container');
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    setHoverToolbar({ id, x: Math.round(x - rect.left), y: Math.round(y - rect.top) });
+  };
+  const hideToolbar = () => setHoverToolbar(null);
+  const [activeHandlesId, setActiveHandlesId] = useState<string | null>(null);
 
   return (
     <div className="w-full relative rose-container">
@@ -165,9 +182,17 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
             const labelPos = getLabelPosition(startAngle, item.angle, effectiveRadius);
             const lx = Math.round(labelPos.x + (item.labelX || 0));
             const ly = Math.round(labelPos.y + (item.labelY || 0));
+            const midAngleDeg = startAngle + item.angle / 2;
+            const midAngle = (midAngleDeg - 90) * (Math.PI / 180);
+            const outerRadius = baseInnerRadius + (effectiveRadius / maxRadiusValue) * (maxRadius - baseInnerRadius);
+            const radiusHandleX = centerX + outerRadius * Math.cos(midAngle);
+            const radiusHandleY = centerY + outerRadius * Math.sin(midAngle);
+            const endAngle = (startAngle + item.angle - 90) * (Math.PI / 180);
+            const angleHandleX = centerX + outerRadius * Math.cos(endAngle);
+            const angleHandleY = centerY + outerRadius * Math.sin(endAngle);
             
             return (
-              <g key={item.id}>
+              <g key={item.id} onMouseEnter={() => setActiveHandlesId(item.id)} onMouseLeave={() => setActiveHandlesId(null)}>
                 {/* Slice */}
                 <path
                   d={path}
@@ -191,9 +216,83 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
                   style={{ fontSize: `${item.fontSize ?? DEFAULT_FONT_SIZE}px`, fontFamily: DEFAULT_FONT_FAMILY, fontWeight: boldText ? 'bold' : 'normal', fill: item.labelColor ?? labelTextColor, textRendering: 'geometricPrecision' }}
                   onMouseDown={(e) => handleLabelMouseDown(e, item)}
                   onClick={(e) => openEditor(e, item.id)}
+                  onDoubleClick={(e) => openLabelEditor(e, item, lx, ly)}
+                  onMouseEnter={(e) => showToolbar(e, item.id, lx, ly)}
+                  onWheel={(e) => {
+                    e.preventDefault();
+                    const cur = item.fontSize ?? DEFAULT_FONT_SIZE;
+                    const next = Math.min(64, Math.max(8, cur + (e.deltaY < 0 ? 1 : -1)));
+                    onUpdateItem?.(item.id, { fontSize: next });
+                  }}
                 >
                   {showValueInLabel ? `${item.name} ${item.value.toFixed(2)}` : item.name}
                 </text>
+
+                {activeHandlesId === item.id && (
+                <circle
+                  cx={radiusHandleX}
+                  cy={radiusHandleY}
+                  r={6}
+                  fill="#ffffff"
+                  stroke={item.color}
+                  strokeWidth={2}
+                  className="cursor-ns-resize"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    const svg = e.currentTarget.closest('svg');
+                    if (!svg) return;
+                    const handleMove = (me: MouseEvent) => {
+                      const rect = svg.getBoundingClientRect();
+                      const px = me.clientX - rect.left;
+                      const py = me.clientY - rect.top;
+                      const dx = px - centerX;
+                      const dy = py - centerY;
+                      const dist = Math.sqrt(dx * dx + dy * dy);
+                      const desiredOuter = Math.max(baseInnerRadius + 1, Math.min(dist, maxRadius));
+                      const desiredRadius = ((desiredOuter - baseInnerRadius) / (maxRadius - baseInnerRadius)) * maxRadiusValue;
+                      onUpdateItem?.(item.id, { radius: Number(desiredRadius.toFixed(2)) });
+                    };
+                    const handleUp = () => {
+                      document.removeEventListener('mousemove', handleMove);
+                      document.removeEventListener('mouseup', handleUp);
+                    };
+                    document.addEventListener('mousemove', handleMove);
+                    document.addEventListener('mouseup', handleUp);
+                  }}
+                />)}
+
+                {activeHandlesId === item.id && (
+                <circle
+                  cx={angleHandleX}
+                  cy={angleHandleY}
+                  r={6}
+                  fill="#ffffff"
+                  stroke={item.color}
+                  strokeWidth={2}
+                  className="cursor-ew-resize"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    const svg = e.currentTarget.closest('svg');
+                    if (!svg) return;
+                    const handleMove = (me: MouseEvent) => {
+                      const rect = svg.getBoundingClientRect();
+                      const px = me.clientX - rect.left;
+                      const py = me.clientY - rect.top;
+                      const ang = Math.atan2(py - centerY, px - centerX) * (180 / Math.PI) + 90;
+                      let newAngle = ang - startAngle;
+                      while (newAngle < 0) newAngle += 360;
+                      while (newAngle > 360) newAngle -= 360;
+                      newAngle = Math.max(1, Math.min(newAngle, 360));
+                      onUpdateItem?.(item.id, { angle: Number(newAngle.toFixed(2)) });
+                    };
+                    const handleUp = () => {
+                      document.removeEventListener('mousemove', handleMove);
+                      document.removeEventListener('mouseup', handleUp);
+                    };
+                    document.addEventListener('mousemove', handleMove);
+                    document.addEventListener('mouseup', handleUp);
+                  }}
+                />)}
               </g>
             );
           })}
@@ -267,6 +366,38 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
               </div>
             );
           })()}
+        </div>
+      )}
+
+      {hoverToolbar && (() => {
+        const item = data.find(d => d.id === hoverToolbar.id);
+        if (!item) return null;
+        return (
+          <div style={{ left: hoverToolbar.x + 10, top: hoverToolbar.y - 10 }} className="absolute z-10 bg-white border rounded shadow px-2 py-1 flex items-center gap-2" onMouseLeave={hideToolbar}>
+            <Input type="number" value={item.value} step="0.01" onChange={(e) => onUpdateItem?.(item.id, { value: parseFloat(e.target.value) })} className="w-20 h-7" />
+            <Input type="color" value={item.labelColor ?? labelTextColor} onChange={(e) => onUpdateItem?.(item.id, { labelColor: e.target.value })} className="w-8 h-7 p-0" />
+            <Input type="color" value={item.color} onChange={(e) => onUpdateItem?.(item.id, { color: e.target.value })} className="w-8 h-7 p-0" />
+          </div>
+        );
+      })()}
+
+      {labelEdit && (
+        <div style={{ left: labelEdit.x, top: labelEdit.y }} className="absolute z-20 bg-white border rounded-md shadow px-2 py-1">
+          <Input
+            value={labelEdit.value}
+            onChange={(e) => setLabelEdit({ ...labelEdit, value: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                onUpdateItem?.(labelEdit.id, { name: labelEdit.value });
+                closeLabelEditor();
+              } else if (e.key === 'Escape') {
+                closeLabelEditor();
+              }
+            }}
+            onBlur={() => { onUpdateItem?.(labelEdit.id, { name: labelEdit.value }); closeLabelEditor(); }}
+            className="h-8"
+            autoFocus
+          />
         </div>
       )}
       
