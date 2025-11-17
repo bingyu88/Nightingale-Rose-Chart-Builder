@@ -46,6 +46,7 @@ export default function App() {
   const [centerCircleStrokeColor, setCenterCircleStrokeColor] = useState('#3b82f6');
   const [labelTextColor, setLabelTextColor] = useState('#334155');
   const [centerTextColor, setCenterTextColor] = useState('#334155');
+  const [centerTextSize, setCenterTextSize] = useState(14);
 
   const exportConfig = () => {
     const config = {
@@ -59,6 +60,7 @@ export default function App() {
       centerCircleStrokeColor,
       labelTextColor,
       centerTextColor,
+      centerTextSize,
     };
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -83,6 +85,7 @@ export default function App() {
       if (typeof cfg.centerCircleStrokeColor === 'string') setCenterCircleStrokeColor(cfg.centerCircleStrokeColor);
       if (typeof cfg.labelTextColor === 'string') setLabelTextColor(cfg.labelTextColor);
       if (typeof cfg.centerTextColor === 'string') setCenterTextColor(cfg.centerTextColor);
+      if (typeof cfg.centerTextSize === 'number') setCenterTextSize(cfg.centerTextSize);
     } catch (e) {}
   };
 
@@ -203,7 +206,7 @@ export default function App() {
               </div>
             </CardHeader>
             <CardContent>
-              <RoseChart data={sortedData} showValueInLabel={showValueInLabel} innerRadius={innerRadius} gapEnabled={gapEnabled} centerText={centerText} boldText={boldText} onLabelDrag={handleLabelDrag} centerCircleStrokeWidth={centerCircleStrokeWidth} centerCircleStrokeColor={centerCircleStrokeColor} labelTextColor={labelTextColor} centerTextColor={centerTextColor} onUpdateItem={handleUpdateItem} />
+              <RoseChart data={sortedData} showValueInLabel={showValueInLabel} innerRadius={innerRadius} gapEnabled={gapEnabled} centerText={centerText} boldText={boldText} onLabelDrag={handleLabelDrag} centerCircleStrokeWidth={centerCircleStrokeWidth} centerCircleStrokeColor={centerCircleStrokeColor} labelTextColor={labelTextColor} centerTextColor={centerTextColor} centerTextSize={centerTextSize} onUpdateItem={handleUpdateItem} />
             </CardContent>
           </Card>
 
@@ -237,6 +240,8 @@ export default function App() {
                 onLabelTextColorChange={setLabelTextColor}
                 centerTextColor={centerTextColor}
                 onCenterTextColorChange={setCenterTextColor}
+                centerTextSize={centerTextSize}
+                onCenterTextSizeChange={setCenterTextSize}
                 onExportConfig={exportConfig}
                 onImportConfig={importConfig}
               />

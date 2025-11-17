@@ -13,13 +13,14 @@ interface RoseChartProps {
   centerCircleStrokeColor?: string;
   labelTextColor?: string;
   centerTextColor?: string;
+  centerTextSize?: number;
   onUpdateItem?: (id: string, updates: Partial<DataItem>) => void;
 }
 
 const DEFAULT_FONT_SIZE = 12;
 const DEFAULT_FONT_FAMILY = '仿宋_GB2312, FangSong, STFangSong, serif';
 
-export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gapEnabled = false, centerText = '', boldText = true, onLabelDrag, centerCircleStrokeWidth = 1, centerCircleStrokeColor = '#3b82f6', labelTextColor = '#334155', centerTextColor = '#334155', onUpdateItem }: RoseChartProps) {
+export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gapEnabled = false, centerText = '', boldText = true, onLabelDrag, centerCircleStrokeWidth = 1, centerCircleStrokeColor = '#3b82f6', labelTextColor = '#334155', centerTextColor = '#334155', centerTextSize = 14, onUpdateItem }: RoseChartProps) {
   if (data.length === 0) {
     return (
       <div className="h-96 flex items-center justify-center text-slate-500">
@@ -194,7 +195,7 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
               textAnchor="middle"
               dominantBaseline="middle"
               className="pointer-events-none"
-              style={{ fontSize: '14px', fontFamily: DEFAULT_FONT_FAMILY, fontWeight: boldText ? 'bold' : 'normal', fill: centerTextColor, textRendering: 'geometricPrecision' }}
+              style={{ fontSize: `${centerTextSize}px`, fontFamily: DEFAULT_FONT_FAMILY, fontWeight: boldText ? 'bold' : 'normal', fill: centerTextColor, textRendering: 'geometricPrecision' }}
             >
               {centerText}
             </text>

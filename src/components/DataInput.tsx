@@ -32,11 +32,13 @@ interface DataInputProps {
   onLabelTextColorChange: (value: string) => void;
   centerTextColor: string;
   onCenterTextColorChange: (value: string) => void;
+  centerTextSize: number;
+  onCenterTextSizeChange: (value: number) => void;
   onExportConfig: () => void;
   onImportConfig: (file: File) => void;
 }
 
-export function DataInput({ data, onAddItem, onUpdateItem, onDeleteItem, showValueInLabel, onToggleShowValue, innerRadius, onInnerRadiusChange, gapEnabled, onGapEnabledChange, centerText, onCenterTextChange, boldText, onBoldTextChange, onApplyTemplateOne, onResetLabelPositions, centerCircleStrokeWidth, onCenterCircleStrokeWidthChange, centerCircleStrokeColor, onCenterCircleStrokeColorChange, labelTextColor, onLabelTextColorChange, centerTextColor, onCenterTextColorChange, onExportConfig, onImportConfig }: DataInputProps) {
+export function DataInput({ data, onAddItem, onUpdateItem, onDeleteItem, showValueInLabel, onToggleShowValue, innerRadius, onInnerRadiusChange, gapEnabled, onGapEnabledChange, centerText, onCenterTextChange, boldText, onBoldTextChange, onApplyTemplateOne, onResetLabelPositions, centerCircleStrokeWidth, onCenterCircleStrokeWidthChange, centerCircleStrokeColor, onCenterCircleStrokeColorChange, labelTextColor, onLabelTextColorChange, centerTextColor, onCenterTextColorChange, centerTextSize, onCenterTextSizeChange, onExportConfig, onImportConfig }: DataInputProps) {
   // Calculate total angle
   const totalAngle = data.reduce((sum, item) => sum + item.angle, 0);
   const importRef = useRef<HTMLInputElement>(null);
@@ -56,6 +58,7 @@ export function DataInput({ data, onAddItem, onUpdateItem, onDeleteItem, showVal
           <div className="flex items-center gap-2"><Label className="text-xs">切片空隙</Label><Switch id="gap-enabled" checked={gapEnabled} onCheckedChange={onGapEnabledChange} /></div>
           <div className="flex items-center gap-2"><Label className="text-xs">字体加粗</Label><Switch id="bold-text" checked={boldText} onCheckedChange={onBoldTextChange} /></div>
           <div className="flex items-center gap-2"><Label className="text-xs">中心文字</Label><Input id="center-text" value={centerText} onChange={(e) => onCenterTextChange(e.target.value)} placeholder="中心文字" className="h-8 w-32" /></div>
+          <div className="flex items-center gap-2"><Label className="text-xs">中心字号</Label><Input id="center-text-size" type="number" value={centerTextSize} onChange={(e) => onCenterTextSizeChange(Number(e.target.value))} min="8" max="72" step="1" className="h-8 w-20" /></div>
           <div className="flex items-center gap-2"><Label className="text-xs">中心半径</Label><Input id="inner-radius" type="number" value={innerRadius} onChange={(e) => onInnerRadiusChange(parseFloat(e.target.value))} min="0" max="150" step="0.01" className="h-8 w-24" /></div>
           <div className="flex items-center gap-2"><Label className="text-xs">中心线宽</Label><Input id="stroke-width" type="number" value={centerCircleStrokeWidth} onChange={(e) => onCenterCircleStrokeWidthChange(Number(e.target.value))} min="0.5" max="10" step="0.5" className="h-8 w-20" /></div>
           <div className="flex items-center gap-2"><Label className="text-xs">中心线色</Label><Input id="stroke-color" type="color" value={centerCircleStrokeColor} onChange={(e) => onCenterCircleStrokeColorChange(e.target.value)} className="h-8 w-10 p-0" /></div>
