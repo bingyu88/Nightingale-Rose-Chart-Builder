@@ -28,10 +28,12 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
     );
   }
 
-  const size = 650;
+  const chartSize = 650;
+  const padding = 120;
+  const size = chartSize + padding * 2;
   const centerX = size / 2;
   const centerY = size / 2;
-  const maxRadius = size / 2 - 100;
+  const maxRadius = chartSize / 2 - 100;
   const baseInnerRadius = Math.min(Math.max(innerRadius, 0), maxRadius - 10);
   
   // Find max radius for scaling
