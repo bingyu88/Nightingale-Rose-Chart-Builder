@@ -31,7 +31,7 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
   const size = 650;
   const centerX = size / 2;
   const centerY = size / 2;
-  const maxRadius = size / 2 - 80;
+  const maxRadius = size / 2 - 100;
   const baseInnerRadius = Math.min(Math.max(innerRadius, 0), maxRadius - 10);
   
   // Find max radius for scaling
@@ -98,6 +98,26 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
     };
   });
 
+  const handleLabelMouseDown = (e: React.MouseEvent, item: DataItem) => {
+    if (!onLabelDrag) return;
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const ox = item.labelX || 0;
+    const oy = item.labelY || 0;
+    const move = (me: MouseEvent) => {
+      const dx = me.clientX - startX;
+      const dy = me.clientY - startY;
+      onLabelDrag(item.id, Math.round(ox + dx), Math.round(oy + dy));
+    };
+    const up = () => {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  };
+
   
 
   return (
@@ -108,7 +128,7 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
         </div>
       )}
       
-      <div className="flex justify-center">
+      <div className="flex justify-center mb-6">
         <svg id="rose-chart-svg" width={size} height={size} className="overflow-visible">
           {/* Draw slices */}
           {slicesData.map(({ item, startAngle }) => {
@@ -146,8 +166,9 @@ export function RoseChart({ data, showValueInLabel = true, innerRadius = 40, gap
                   y={ly}
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  className="select-none"
+                  className="cursor-move select-none"
                   style={{ fontSize: `${item.fontSize ?? DEFAULT_FONT_SIZE}px`, fontFamily: DEFAULT_FONT_FAMILY, fontWeight: boldText ? 'bold' : 'normal', fill: item.labelColor ?? labelTextColor, textRendering: 'geometricPrecision' }}
+                  onMouseDown={(e) => handleLabelMouseDown(e, item)}
                 >
                   {showValueInLabel ? `${item.name} ${item.value.toFixed(2)}` : item.name}
                 </text>
